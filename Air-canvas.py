@@ -5,8 +5,7 @@ from collections import deque
 #default called trackbar function 
 def setValues(x):
    print("")
-
-
+   
 # Creating the trackbars needed for adjusting the marker colour
 cv2.namedWindow("Color detectors")
 cv2.createTrackbar("Upper Hue", "Color detectors", 153, 180,setValues)
