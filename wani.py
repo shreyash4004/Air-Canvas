@@ -62,7 +62,7 @@ colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255), (0, 255, 255)]
 colorIndex = 0
 
 # Here is code for Canvas setup
-paintWindow = np.zeros((471, 636, 3)) + 255
+paintWindow = np.zeros((520, 760, 3)) + 255
 paintWindow = cv2.rectangle(paintWindow, (40, 1), (140, 65), (0, 0, 0), 2)
 paintWindow = cv2.rectangle(paintWindow, (160, 1), (255, 65), colors[0], -1)
 paintWindow = cv2.rectangle(paintWindow, (275, 1), (370, 65), colors[1], -1)

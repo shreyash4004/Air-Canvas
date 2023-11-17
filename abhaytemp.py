@@ -153,34 +153,95 @@ while True:
                 ypoints.append(deque(maxlen=512))
                 yellow_index += 1
 
-    if drawing:
-        mask = np.zeros_like(frame)
-        cv2.circle(mask, (index_finger_x, index_finger_y), 15, (255, 255, 255), -1)
+            if drawing:
+                mask = np.zeros_like(frame)
+                cv2.circle(mask, (index_finger_x, index_finger_y), 15, (255, 255, 255), -1)
 
-        index_finger_masked = cv2.bitwise_and(frame, mask)
+                index_finger_masked = cv2.bitwise_and(frame, mask)
 
-        gray_frame = cv2.cvtColor(index_finger_masked, cv2.COLOR_BGR2GRAY)
+                gray_frame = cv2.cvtColor(index_finger_masked, cv2.COLOR_BGR2GRAY)
 
-        _, thresholded = cv2.threshold(gray_frame, 30, 255, cv2.THRESH_BINARY)
+                _, thresholded = cv2.threshold(gray_frame, 30, 255, cv2.THRESH_BINARY)
 
-        cnts, _ = cv2.findContours(thresholded.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        center = None
+                cnts, _ = cv2.findContours(thresholded.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                center = None
 
-        if len(cnts) > 0:
-            cnt = sorted(cnts, key=cv2.contourArea, reverse=True)[0]
-            identified_shape = identify_shape(cnt)
+                if len(cnts) > 0:
+                    cnt = sorted(cnts, key=cv2.contourArea, reverse=True)[0]
+                    identified_shape = identify_shape(cnt)
 
-            # Replace the drawn shape with a perfect shape
-            if identified_shape != "Unknown":
-                perfect_shape = replace_with_perfect_shape(cnt, identified_shape)
-                cv2.drawContours(frame, [perfect_shape], 0, (255, 255, 255), -1)  # Replace with white circle
-            else:
-                ((x, y), radius) = cv2.minEnclosingCircle(cnt)
-                cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
+                    # Replace the drawn shape with a perfect shape
+                    if identified_shape != "Unknown":
+                        perfect_shape = replace_with_perfect_shape(cnt, identified_shape)
+                        cv2.drawContours(frame, [perfect_shape], 0, (255, 255, 255), -1)  # Replace with white circle
+                    else:
+                        ((x, y), radius) = cv2.minEnclosingCircle(cnt)
+                        cv2.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
 
-            M = cv2.moments(cnt)
-            center = (int(M['m10'] / M['m00']), int(M['m01'] / M['m00']))
+                    M = cv2.moments(cnt)
+                    center = (int(M['m10'] / M['m00']), int(M['m01'] / M['m00']))
 
-            # ... (Previous code remains unchanged)
+                    # ... (Previous code remains unchanged)
+                    
+                    if center[1] <= 65:
+                        if 40 <= center[0] <= 140:  # Clear Button
+                            bpoints = [deque(maxlen=512)]
+                            gpoints = [deque(maxlen=512)]
+                            rpoints = [deque(maxlen=512)]
+                            ypoints = [deque(maxlen=512)]
+
+                            blue_index = 0
+                            green_index = 0
+                            red_index = 0
+                            yellow_index = 0
+
+                            paintWindow[67:, :, :] = 255
+                            drawing = False
+                        elif 160 <= center[0] <= 255:
+                            colorIndex = 0  # Blue
+                        elif 275 <= center[0] <= 370:
+                            colorIndex = 1  # Green
+                        elif 390 <= center[0] <= 485:
+                            colorIndex = 2  # Red
+                        elif 505 <= center[0] <= 600:
+                            colorIndex = 3  # Yellow
+                        elif 610 <= center[0] <= 636:
+                            if 1 <= center[1] <= 33:  # SAVE button
+                                save_canvas()
+                            elif 40 <= center[1] <= 71:  # REOPEN button
+                                reopen_canvas()
+                    else:
+                        if colorIndex == 0:
+                            bpoints[blue_index].appendleft(center)
+                        elif colorIndex == 1:
+                            gpoints[green_index].appendleft(center)
+                        elif colorIndex == 2:
+                            rpoints[red_index].appendleft(center)
+                        elif colorIndex == 3:
+                            ypoints[yellow_index].appendleft(center)
+            
+            # Draw lines of all the colors on the canvas and frame
+            points = [bpoints, gpoints, rpoints, ypoints]
+            for i in range(len(points)):
+                for j in range(len(points[i])):
+                    # Use interpolation to connect consecutive points with smooth curves
+                    for k in range(1, len(points[i][j])):
+                        if points[i][j][k - 1] is None or points[i][j][k] is None:
+                            continue
+                        cv2.line(frame, points[i][j][k - 1], points[i][j][k], colors[i], 2)
+                        cv2.line(paintWindow, points[i][j][k - 1], points[i][j][k], colors[i], 2)
+                        cv2.circle(frame, points[i][j][k], 8, colors[i], -1)    
 
 # ... (Rest of the code remains unchanged)
+
+    # Show all the windows
+    cv2.imshow("Tracking", frame)
+    cv2.imshow("Paint", paintWindow)
+
+    # If the 'q' key is pressed then stop the application
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
+
+# Release the camera and all resources
+cap.release()
+cv2.destroyAllWindows()
